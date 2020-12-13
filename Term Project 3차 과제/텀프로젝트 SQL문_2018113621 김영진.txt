@@ -1,0 +1,88 @@
+//산업시스템공학과 2018113621 김영진
+//테이블 생성을 위한 SQL문
+
+//관객 테이블 생성
+create table audience
+(id char(20), name varchar(20), birth date, phone varchar(40), address varchar(40), primary key(id));
+//티켓 테이블 생성
+create table ticket
+(id char(10), seat_id char(8), mail char(4), primary key(id));
+//경기 테이블 생성
+create table game
+(id char(10), stadium_name varchar(20), team_name varchar(20), date date, team2_name varchar(20), primary key(id));
+//경기장 테이블 생성
+create table stadium
+(name varchar(20), team_name_st varchar(20), address varchar(40), max int, primary key(name));
+//좌석 테이블 생성
+create table seat
+(id char(8), stadium_name_se varchar(20), level char(8), price int, primary key(id));
+//구단 테이블 생성
+create table team
+(name varchar(20), stadium_name_te varchar(20), type varchar(20), phone varchar(20), year int, primary key(name));
+
+//개체 테이블의 일부 외래키가 다른 개체 테이블이 먼저 생성되지 않아서 외래키 설정을 미리 할 수 없었기 때문에
+//개체 테이블을 모두 생성한 후 일괄적으로 각각 외래키 설정을 해주었습니다.
+//티켓의 좌석번호 외래키 설정
+alter table ticket add constraint foreign key(seat_id) references seat(id);
+//경기의 경기장 이름, 구단명 외래키 설정
+alter table game add constraint foreign key(stadium_name) references stadium(name);
+alter table game add constraint foreign key(team_name) references team(name);
+alter table game add constraint foreign key(team2_name) references team(name);
+//경기장의 구단명 외래키 설정
+alter table stadium add constraint foreign key(team_name_st) references team(name);
+//좌석의 경기장 이름 외래키 설정
+alter table seat add constraint foreign key(stadium_name_se) references stadium(name);
+//구단의 경기장 이름 외래키 설정
+alter table team add constraint foreign key(stadium_name_te) references stadium(name);
+
+//관계 테이블
+//예매 테이블 생성
+create table ticketing
+(audience_id char(20), ticket_id char(10), game_id char(10), date date, primary key(ticket_id), foreign key(ticket_id) references ticket(id), foreign key(audience_id) references audience(id), foreign key(game_id) references game(id));
+//예매현황 테이블 생성
+create table status
+(game_id char(10), ticket_id char(10), seat_id char(10), primary key(ticket_id), foreign key(ticket_id) references ticket(id), foreign key(game_id) references game(id), foreign key(seat_id) references seat(id));
+//리그 테이블 생성
+create table league
+(name varchar(20), team_name varchar(20), primary key(name), foreign key(team_name) references team(name));
+//참가 테이블 생성
+create table play
+(game_id char(10), team_name varchar(20), team2_name varchar(20), primary key(game_id), foreign key(team_name) references team(name), foreign key(team2_name) references team(name));
+//응원 테이블 생성
+create table cheer
+(audience_id char(20), team_name varchar(20), primary key(audience_id), foreign key(audience_id) references audience(id), foreign key(team_name) references team(name));
+
+
+//사용자별 작업 내용 처리를 위한 SQL문
+//사용자1. 관객
+//경기 검색 : bears라는 팀의 모든 경기를 검색한다.
+select * from game where team_name = 'bears' OR team2_name = 'bears';
+//좌석 조회 : SKHW12 경기의 예매된 좌석번호를 조회한다.
+select * from status wehre game_id='SKHW12';
+//예매내역 조회 : guest01 관객의 모든 예매 내역을 조회한다.
+select * from ticketing where audience_id='guest01';
+
+//사용자2. 매표 직원
+//좌석 조회 : SKHW12 경기의 예매된 좌석번호를 조회한다.
+select * from status where game_id='SKHW12';
+//좌석정보 확인 : jamsil 경기장의 좌석번호, 좌석등급, 좌석가격을 검색한다.
+select * from seat where stadium_name_se = 'jamsil';
+
+//사용자3. 경기생성 직원
+//경기 검색 : 경기 생성을 위해 12월 1일에 예정된 모든 경기를 검색한다.
+select * from game where date = '2020-12-01';
+//경기장 좌석 확인 : DSNC12경기 예매창 생성을 위해 jamsil 경기장의 좌석번호, 좌석등급, 좌석가격을 검색한다.
+select * from seat where stadium_name_se = 'jamsil';
+
+//사용자4. 티켓발송 직원
+//발송요청 조회 : 예매된 티켓 중에서 배송여부가 yes인 티켓번호를 조회한다.
+select id from ticket where mail = 'yes';
+//고객정보 확인 : 배송할 티켓번호인 A10001에 대해 예매한 고객의 이름과 주소, 전화번호를 조회한다.
+select name, address, phone from audience where id = (select audience_id from ticketing where ticket_id = 'A10001' and ticketing.audience_id = audience.id);
+
+//사용자5. 마케팅 직원
+//고객정보 확인 : dinos라는 팀을 응원하는 고객의 이름과 전화번호, 주소를 확인한다.
+select name, phone, address from audience where id = (select audience_id from cheer where team_name = 'dinos' and cheer.audience_id = audience.id);
+//경기 검색 : dinos 팀의 예정된 경기를 검색한다.
+select * from game where team_name='dinos' or team2_name='dinos';
+
